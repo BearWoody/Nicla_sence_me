@@ -1,0 +1,38 @@
+#include "Arduino_BHY2.h"
+
+Sensor temp(SENSOR_ID_TEMP);
+Sensor baro(SENSOR_ID_BARO);
+Sensor gas(SENSOR_ID_GAS_WU);  
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial); 
+
+  BHY2.begin();
+
+  temp.begin();
+  baro.begin();
+  gas.begin();
+
+  Serial.println("Nicla Sense ME - měření teploty, tlaku a plynu (CO₂ ekv.)");
+}
+
+void loop() {
+  BHY2.update(); // aktualizace dat ze senzorů
+
+  float temperature = temp.value();      // °C
+  float pressure = baro.value();         // hPa
+  float gas_resistance = gas.value();    // kΩ
+
+  float co2_estimate = 400 + (100000 / gas_resistance);
+
+  Serial.print("T: ");
+  Serial.print(temperature, 2);
+  Serial.print(" °C, P: ");
+  Serial.print(pressure, 2);
+  Serial.print(" hPa, CO₂~: ");
+  Serial.print(co2_estimate, 1);
+  Serial.println(" ppm");
+
+  delay(100); // 10 Hz
+}
