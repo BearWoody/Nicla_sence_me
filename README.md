@@ -49,6 +49,13 @@ Zařízení vystavuje jednu primární službu se čtyřmi charakteristikami typ
 •	UUID ...0002: Vlhkost [%]
 •	UUID ...0003: Tlak [hPa]
 •	UUID ...0004: Odhad CO2 [ppm]
+
+!!!
+Používám striktně non-blocking architekturu: 
+Program nepoužívá funkci delay() v žádné části kódu. I vizuální indikace (blikání LED) je řešena 
+pomocí asynchronního časovače. To zaručuje, že procesor je 100 % času dostupný pro BHY2.update() 
+a nebude bránit dalším implemnentacím. 
 ________________________________________
+
 Vypracováno v rámci studia na oboru Informatika a kybernetika ve zdravotnictví.
 
