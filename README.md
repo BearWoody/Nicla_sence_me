@@ -4,7 +4,9 @@ BOSCH sencors and bluetooth sharing
 Testování komunikačních možností senzoru Nicla Sense ME a vývoj aplikace pro zpracování senzorových dat
 
 Autor: Vojtěch Jiříkovský
+
 Obor: Informatika a kybernetika ve zdravotnictví
+
 Předmět/Projekt: Projekt I
 
 Anotace projektu
