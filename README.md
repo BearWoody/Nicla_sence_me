@@ -32,11 +32,11 @@ Návod k použití (Prototyp)
 •	Po nahrání se rozbliká LED dioda, indikující vysílání (Advertising).
 2. Připojení klientské aplikace
    
-Jako referenční aplikace pro sběr dat je použit software nRF Connect nebo Bluetooth LE Explorer.
-1.	Spusťte BLE skener na přijímacím zařízení (PC/Mobil).
-2.	Vyhledejte zařízení s názvem Nicla Sense ME.
-3.	Připojte se a povolte notifikace u služby s UUID 19B10000....
-4.	Data (Teplota, Tlak, Vlhkost, CO2 ekvivalent) jsou aktualizována každých 100 ms.
+Jako aplikace pro sběr a vizualizaci dat je použit vlastní Python skript využívající knihovnu Bleak.
+- Spuštění klienta: Na přijímacím zařízení (PC) spusťte Python skript.
+- Automatické vyhledání: Skript automaticky skenuje okolí a vyhledá zařízení s názvem „Nicla Sense ME“.
+- Připojení a odběr: Po nalezení se skript připojí a automaticky aktivuje notifikace pro UUID charakteristik všech senzorů (teplota, vlhkost, tlak, plyn, akcelerometr).
+- Zpracování dat: Data jsou přijímána v reálném čase, přepočítána na srozumitelné jednotky (např. náklony ve stupních, přetížení v g) a vypisována do terminálu.
    
 Metodika ověření 10 Hz
 Pro splnění zadání (ověření rychlosti) byl v kódu nastaven interval na 100 ms.
