@@ -9,7 +9,7 @@ Sensor gas(SENSOR_ID_GAS);
 SensorXYZ accel(SENSOR_ID_ACC);
 
 // 2. Nastavení Bluetooth 
-BLEService sensorService("19B10000-E8F2-537E-4F6C-D104768A1214");
+BLEService mySensorService("19B10000-E8F2-537E-4F6C-D104768A1214");
 
 // Charakteristiky
 BLEFloatCharacteristic tempChar("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
@@ -21,12 +21,12 @@ BLEFloatCharacteristic accYChar("19B10006-E8F2-537E-4F6C-D104768A1214", BLERead 
 BLEFloatCharacteristic accZChar("19B10007-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
 
 // 3. Proměnné pro časování (Non-blocking)
-unsigned long lastUpdate = 0;       
-const int interval = 100;           
+unsigned long lastUpdate = 0;        
+const int interval = 100;            
 
 unsigned long ledTurnOffTime = 0;   
-bool isLedOn = false;               
-const int ledDuration = 10;         
+bool isLedOn = false;                
+const int ledDuration = 10;          
 
 void setup() {
   Serial.begin(115200);
@@ -39,23 +39,23 @@ void setup() {
   gas.begin();
   accel.begin();
 
-  // Start BLE
   if (!BLE.begin()) {
     Serial.println("CHYBA: Bluetooth start failed!");
     while (1);
   }
 
   BLE.setLocalName("Nicla Sense ME");
-  BLE.setAdvertisedService(sensorService);
-  sensorService.addCharacteristic(tempChar);
-  sensorService.addCharacteristic(humChar);
-  sensorService.addCharacteristic(pressChar);
-  sensorService.addCharacteristic(gasChar);
-  sensorService.addCharacteristic(accXChar);
-  sensorService.addCharacteristic(accYChar);
-  sensorService.addCharacteristic(accZChar);
+  BLE.setAdvertisedService(mySensorService);
+  
+  mySensorService.addCharacteristic(tempChar);
+  mySensorService.addCharacteristic(humChar);
+  mySensorService.addCharacteristic(pressChar);
+  mySensorService.addCharacteristic(gasChar);
+  mySensorService.addCharacteristic(accXChar);
+  mySensorService.addCharacteristic(accYChar);
+  mySensorService.addCharacteristic(accZChar);
 
-  BLE.addService(sensorService);
+  BLE.addService(mySensorService);
   BLE.advertise();
 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -65,7 +65,7 @@ void setup() {
 }
 
 void loop() {
-  // A. Aktualizace systémů (musí běžet v každém cyklu)
+  // A. Aktualizace systémů
   BLE.poll();
   BHY2.update();
   unsigned long currentMillis = millis();
@@ -93,7 +93,7 @@ void loop() {
       accYChar.writeValue(ay);
       accZChar.writeValue(az);
       
-      // 3. Rozsvícení LED (indikace odeslání)
+      // 3. Rozsvícení LED
       digitalWrite(LED_BUILTIN, HIGH);
       isLedOn = true;
       ledTurnOffTime = currentMillis + ledDuration; 
