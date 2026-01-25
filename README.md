@@ -1,5 +1,5 @@
 # Nicla_sence_me
-BOSCH sencors and bluetooth sharing
+BOSCH sensors and bluetooth sharing
 
 Testování komunikačních možností senzoru Nicla Sense ME a vývoj aplikace pro zpracování senzorových dat
 
