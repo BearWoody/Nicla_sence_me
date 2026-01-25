@@ -43,12 +43,6 @@ Pro splnění zadání (ověření rychlosti) byl v kódu nastaven interval na 1
 •	Ověření: Sledováním časových značek (timestamps) příchozích paketů v klientské aplikaci.
 •	Stabilita: Indikována pravidelným blikáním LED diody na desce synchronně s odesláním dat.
 
-Struktura dat (BLE GATT)
-Zařízení vystavuje jednu primární službu se čtyřmi charakteristikami typu Float (32-bit):
-•	UUID ...0001: Teplota [°C]
-•	UUID ...0002: Vlhkost [%]
-•	UUID ...0003: Tlak [hPa]
-•	UUID ...0004: Odhad CO2 [ppm]
 
 !!!
 Používám striktně non-blocking architekturu: 
