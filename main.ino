@@ -1,14 +1,14 @@
 #include "Arduino_BHY2.h"
 #include <ArduinoBLE.h>
 
-// 1. Definice senzorů 
+// 1. Definice senzorů
 Sensor temp(SENSOR_ID_TEMP);
 Sensor hum(SENSOR_ID_HUM);
 Sensor baro(SENSOR_ID_BARO);
 Sensor gas(SENSOR_ID_GAS);
 SensorXYZ accel(SENSOR_ID_ACC);
 
-// 2. Nastavení Bluetooth 
+// 2. Nastavení Bluetooth
 BLEService mySensorService("19B10000-E8F2-537E-4F6C-D104768A1214");
 
 // Charakteristiky
@@ -20,13 +20,13 @@ BLEFloatCharacteristic accXChar("19B10005-E8F2-537E-4F6C-D104768A1214", BLERead 
 BLEFloatCharacteristic accYChar("19B10006-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
 BLEFloatCharacteristic accZChar("19B10007-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
 
-// 3. Proměnné pro časování (Non-blocking)
-unsigned long lastUpdate = 0;        
-const int interval = 100;            
+// 3. Proměnné pro Non-blocking časování
+unsigned long previousMillis = 0;          // Čas posledního odeslání dat
+const unsigned long interval = 100;        // Interval odesílání v ms
 
-unsigned long ledTurnOffTime = 0;   
-bool isLedOn = false;                
-const int ledDuration = 10;          
+unsigned long ledTurnOnTime = 0;           // Čas kdy se LED rozsvítila
+const unsigned long ledDuration = 10;      // Doba po kterou má LED svítit (v ms)
+bool isLedOn = false;                      // Aktuální stav LED 
 
 void setup() {
   Serial.begin(115200);
@@ -40,8 +40,8 @@ void setup() {
   accel.begin();
 
   if (!BLE.begin()) {
-    Serial.println("CHYBA: Bluetooth start failed!");
-    while (1);
+    Serial.println("Error: Bluetooth start failed!");
+    while (1); // Pokud se BLE nespustí, zastavíme program
   }
 
   BLE.setLocalName("Nicla Sense ME");
@@ -59,48 +59,42 @@ void setup() {
   BLE.advertise();
 
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW); 
+  digitalWrite(LED_BUILTIN, LOW);
   
-  Serial.println("System bezi (Non-blocking). Cekam na pripojeni...");
+  Serial.println("Cekam na pripojeni...");
 }
 
 void loop() {
-  // A. Aktualizace systémů
   BLE.poll();
   BHY2.update();
+
+  // Získání aktuálního času (pouze jednou za cyklus pro zajištění synchronizace)
   unsigned long currentMillis = millis();
 
-  // B. Odesílání dat (10 Hz)
-  if (currentMillis - lastUpdate >= interval) {
-    lastUpdate = currentMillis;
+  // B. Blok odesílání dat (proběhne přesně každých 100 ms)
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis; 
 
     if (BLE.connected()) {
-      // 1. Načtení hodnot
-      float t = temp.value();
-      float h = hum.value();
-      float p = baro.value();
-      float g = gas.value();
-      float ax = accel.x();
-      float ay = accel.y();
-      float az = accel.z();
-
-      // 2. Odeslání
-      tempChar.writeValue(t);
-      humChar.writeValue(h);
-      pressChar.writeValue(p);
-      gasChar.writeValue(g);
-      accXChar.writeValue(ax);
-      accYChar.writeValue(ay);
-      accZChar.writeValue(az);
+      // Odeslání hodnot přímo z bufferu senzoru 
+      tempChar.writeValue(temp.value());
+      humChar.writeValue(hum.value());
+      pressChar.writeValue(baro.value());
+      gasChar.writeValue(gas.value());
+      accXChar.writeValue(accel.x());
+      accYChar.writeValue(accel.y());
+      accZChar.writeValue(accel.z());
       
-      // 3. Rozsvícení LED
-      digitalWrite(LED_BUILTIN, HIGH);
-      isLedOn = true;
-      ledTurnOffTime = currentMillis + ledDuration; 
+      // Spuštění indikátoru přenosu
+      if (!isLedOn) {
+        digitalWrite(LED_BUILTIN, HIGH);
+        isLedOn = true;
+        ledTurnOnTime = currentMillis; 
+      }
     }
   }
 
-  if (isLedOn && currentMillis >= ledTurnOffTime) {
+  if (isLedOn && (currentMillis - ledTurnOnTime >= ledDuration)) {
     digitalWrite(LED_BUILTIN, LOW);
     isLedOn = false;
   }
