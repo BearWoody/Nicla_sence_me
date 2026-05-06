@@ -1,0 +1,77 @@
+import csv
+
+# Konfigurace
+CSV_FILE = "nicla_data_2026-05-07_00-56-55.csv"  # Aktuální název souboru z loggeru
+EXPECTED_DELTA_MS = 100
+TOLERANCE_MS = 10
+
+
+def validate_hw_csv(filename):
+    print(f"Validace souboru: {filename}")
+    print("-" * 50)
+
+    try:
+        with open(filename, mode='r') as file:
+            reader = csv.reader(file)
+            header = next(reader, None)
+
+            if not header or "Arduino_ms" not in header:
+                print("Chyba: Neplatný formát CSV.")
+                return
+
+            total_rows = 0
+            jitter_count = 0
+            drop_count = 0
+            max_delta = 0
+            min_delta = float('inf')
+            previous_hw_time = None
+
+            for row_num, row in enumerate(reader, start=2):
+                total_rows += 1
+                try:
+                    current_hw_time = int(row[1])
+                except (ValueError, IndexError):
+                    continue
+
+                if previous_hw_time is not None:
+                    delta_ms = current_hw_time - previous_hw_time
+
+                    # Ošetření přetečení millis()
+                    if delta_ms < 0:
+                        delta_ms += 4294967296
+
+                    if delta_ms > max_delta: max_delta = delta_ms
+                    if delta_ms < min_delta: min_delta = delta_ms
+
+                    if delta_ms > 180:
+                        drop_count += 1
+                    elif abs(delta_ms - EXPECTED_DELTA_MS) > TOLERANCE_MS:
+                        jitter_count += 1
+
+                previous_hw_time = current_hw_time
+
+            print("-" * 50)
+            print("   ZPRÁVA O INTEGRITĚ DAT:")
+            print(f"  Celkem vzorků:        {total_rows}")
+            print("-" * 50)
+            print(f"  Časové extrémy: ")
+            print(f"  Nejmenší prodleva:  {min_delta} ms")
+            print(f"  Největší prodleva:  {max_delta} ms")
+            print("-" * 50)
+            print("   Analýza dat:")
+            print(f"  [~] Jitter:         {jitter_count}x (Odchylka > {TOLERANCE_MS}ms)")
+            print(f"  [!] Ztracené packety:  {drop_count}x (Mezera > 180 ms)")
+
+            print("-" * 50)
+            if drop_count == 0:
+                print("   VÝSLEDEK: Arduino stíhá 10 Hz --- Data jsou bez mezer.")
+            else:
+                print(
+                    f"   VÝSLEDEK: Vynecháno {drop_count} vzorků.")
+
+    except FileNotFoundError:
+        print(f"Chyba: Soubor '{filename}' nebyl nalezen.")
+
+
+if __name__ == "__main__":
+    validate_hw_csv(CSV_FILE)
