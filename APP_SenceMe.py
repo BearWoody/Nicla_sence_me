@@ -10,6 +10,13 @@ DEVICE_NAME = "Nicla Sense ME"
 UUID_DATA = "19B10001-E8F2-537E-4F6C-D104768A1214"
 ACC_DIVISOR = 4096.0
 
+# Nastavení doby měření
+MEASUREMENT_HOURS = 1
+MEASUREMENT_MINUTES = 0
+MEASUREMENT_SECONDS = 0
+
+TOTAL_MEASUREMENT_SEC = (MEASUREMENT_HOURS * 3600) + (MEASUREMENT_MINUTES * 60) + MEASUREMENT_SECONDS
+
 data_queue = None
 
 
@@ -69,8 +76,14 @@ async def main():
 
             print("-" * 130)
 
+            start_datetime = datetime.datetime.now()
+
             try:
                 while True:
+                    if (datetime.datetime.now() - start_datetime).total_seconds() >= TOTAL_MEASUREMENT_SEC:
+                        print(f"\nKonec měření po {MEASUREMENT_HOURS}h {MEASUREMENT_MINUTES}m {MEASUREMENT_SECONDS}s.")
+                        break
+
                     snapshot = await data_queue.get()
 
                     now_full = snapshot["timestamp"]
