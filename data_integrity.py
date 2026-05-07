@@ -1,7 +1,7 @@
 import csv
 
 # Konfigurace
-CSV_FILE = "nicla_data_2026-05-07_00-56-55.csv"  # Aktuální název souboru z loggeru
+CSV_FILE = "nicla_data_2026-05-07_08-34-48.csv"  # Aktuální název souboru z loggeru
 EXPECTED_DELTA_MS = 100
 TOLERANCE_MS = 10
 
@@ -21,7 +21,8 @@ def validate_hw_csv(filename):
 
             total_rows = 0
             jitter_count = 0
-            drop_count = 0
+            drop_instances = 0
+            missing_samples = 0
             max_delta = 0
             min_delta = float('inf')
             previous_hw_time = None
@@ -44,7 +45,12 @@ def validate_hw_csv(filename):
                     if delta_ms < min_delta: min_delta = delta_ms
 
                     if delta_ms > 180:
-                        drop_count += 1
+                        drop_instances += 1
+                        # Výpočet kolik reálných vzorků (po 100ms) se do této mezery vešlo
+                        missing_in_gap = round(delta_ms / EXPECTED_DELTA_MS) - 1
+                        if missing_in_gap > 0:
+                            missing_samples += missing_in_gap
+
                     elif abs(delta_ms - EXPECTED_DELTA_MS) > TOLERANCE_MS:
                         jitter_count += 1
 
@@ -52,7 +58,8 @@ def validate_hw_csv(filename):
 
             print("-" * 50)
             print("   ZPRÁVA O INTEGRITĚ DAT:")
-            print(f"  Celkem vzorků:        {total_rows}")
+            print(f"  Celkem přijatých vzorků: {total_rows}")
+            print(f"  Celkem chybějících:      {missing_samples}")
             print("-" * 50)
             print(f"  Časové extrémy: ")
             print(f"  Nejmenší prodleva:  {min_delta} ms")
@@ -60,14 +67,14 @@ def validate_hw_csv(filename):
             print("-" * 50)
             print("   Analýza dat:")
             print(f"  [~] Jitter:         {jitter_count}x (Odchylka > {TOLERANCE_MS}ms)")
-            print(f"  [!] Ztracené packety:  {drop_count}x (Mezera > 180 ms)")
+            print(f"  [!] Výpadky spojení: {drop_instances}x (Mezera > 180 ms)")
 
             print("-" * 50)
-            if drop_count == 0:
+            if missing_samples == 0:
                 print("   VÝSLEDEK: Arduino stíhá 10 Hz --- Data jsou bez mezer.")
             else:
                 print(
-                    f"   VÝSLEDEK: Vynecháno {drop_count} vzorků.")
+                    f"   VÝSLEDEK: Ztraceno {missing_samples} vzorků (cca {(missing_samples / (total_rows + missing_samples) * 100):.1f} % z celku).")
 
     except FileNotFoundError:
         print(f"Chyba: Soubor '{filename}' nebyl nalezen.")
