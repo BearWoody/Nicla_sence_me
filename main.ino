@@ -1,34 +1,39 @@
 #include "Arduino_BHY2.h"
 #include <ArduinoBLE.h>
 
-// 1. Definice senzorů
+// Senzory
 Sensor temp(SENSOR_ID_TEMP);
 Sensor hum(SENSOR_ID_HUM);
 Sensor baro(SENSOR_ID_BARO);
 Sensor gas(SENSOR_ID_GAS);
 SensorXYZ accel(SENSOR_ID_ACC);
 
-// 2. Definice datového balíčku
+// Datový paket (32 bytů)
 struct SensorData {
   uint32_t timestamp; 
-  float temp;        
+  float temp;         
   float hum;          
   float press;        
   float gas;          
   float accX;         
   float accY;         
   float accZ;         
-}; 
+};
 
-SensorData currentData; 
+// --- PŘIDÁVÁME RING BUFFER (Kruhová fronta) ---
+const int BUFFER_SIZE = 50; // Kapacita na 5 sekund výpadku
+SensorData dataBuffer[BUFFER_SIZE];
+int head = 0;   // Ukazatel pro zápis
+int tail = 0;   // Ukazatel pro čtení
+int count = 0;  // Aktuální počet zpráv ve frontě
 
-// 3. Nastavení Bluetooth
+// BLE nastavení
 BLEService mySensorService("19B10000-E8F2-537E-4F6C-D104768A1214");
 BLECharacteristic dataChar("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify, sizeof(SensorData));
 
-// 4. Proměnné pro časování
+// Časování
 unsigned long previousMillis = 0;          
-const unsigned long interval = 100; 
+const unsigned long interval = 100; // 10 Hz
 
 unsigned long ledTurnOnTime = 0;           
 const unsigned long ledDuration = 10;      
@@ -53,6 +58,8 @@ void setup() {
   BLE.setAdvertisedService(mySensorService);
   mySensorService.addCharacteristic(dataChar);
 
+  BLE.setConnectionInterval(12, 24); 
+
   BLE.addService(mySensorService);
   BLE.advertise();
 
@@ -68,21 +75,30 @@ void loop() {
 
   unsigned long currentMillis = millis();
 
+  // 1. ZÁPIS DO FRONTY 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis; 
 
-    if (BLE.connected()) {
-      currentData.timestamp = currentMillis; 
-      currentData.temp = temp.value();
-      currentData.hum = hum.value();
-      currentData.press = baro.value();
-      currentData.gas = gas.value();
-      currentData.accX = accel.x();
-      currentData.accY = accel.y();
-      currentData.accZ = accel.z();
+    if (count < BUFFER_SIZE) {
+      dataBuffer[head].timestamp = currentMillis; 
+      dataBuffer[head].temp = temp.value();
+      dataBuffer[head].hum = hum.value();
+      dataBuffer[head].press = baro.value();
+      dataBuffer[head].gas = gas.value();
+      dataBuffer[head].accX = accel.x();
+      dataBuffer[head].accY = accel.y();
+      dataBuffer[head].accZ = accel.z();
       
-      // 2. Odešleme celý 32bytový struct
-      dataChar.writeValue((byte*)&currentData, sizeof(SensorData));
+      head = (head + 1) % BUFFER_SIZE;
+      count++;
+    }
+  }
+
+  // 2. ODESÍLÁNÍ Z FRONTY 
+  if (BLE.connected() && count > 0) {
+    if (dataChar.writeValue((byte*)&dataBuffer[tail], sizeof(SensorData))) {
+      tail = (tail + 1) % BUFFER_SIZE;
+      count--;
       
       if (!isLedOn) {
         digitalWrite(LED_BUILTIN, HIGH);
