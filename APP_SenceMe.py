@@ -11,8 +11,8 @@ UUID_DATA = "19B10001-E8F2-537E-4F6C-D104768A1214"
 ACC_DIVISOR = 4096.0
 
 # Nastavení doby měření
-MEASUREMENT_HOURS = 1
-MEASUREMENT_MINUTES = 0
+MEASUREMENT_HOURS = 0
+MEASUREMENT_MINUTES = 10
 MEASUREMENT_SECONDS = 0
 
 TOTAL_MEASUREMENT_SEC = (MEASUREMENT_HOURS * 3600) + (MEASUREMENT_MINUTES * 60) + MEASUREMENT_SECONDS
@@ -80,7 +80,15 @@ async def main():
 
             try:
                 while True:
-                    if (datetime.datetime.now() - start_datetime).total_seconds() >= TOTAL_MEASUREMENT_SEC:
+                    now_time = datetime.datetime.now()
+                    elapsed_sec = (now_time - start_datetime).total_seconds()
+                    remaining_sec = int(TOTAL_MEASUREMENT_SEC - elapsed_sec)
+
+                    rem_h = remaining_sec // 3600
+                    rem_m = (remaining_sec % 3600) // 60
+                    rem_s = remaining_sec % 60
+
+                    if elapsed_sec >= TOTAL_MEASUREMENT_SEC:
                         print(f"\nKonec měření po {MEASUREMENT_HOURS}h {MEASUREMENT_MINUTES}m {MEASUREMENT_SECONDS}s.")
                         break
 
@@ -116,7 +124,7 @@ async def main():
                     ])
                     file.flush()
 
-                    print(f"\r[{now_console} | Nicla: {snapshot['arduino_ms']} ms] "
+                    print(f"\r[{now_console} | Zbývá: {rem_h:02d}:{rem_m:02d}:{rem_s:02d} | Nicla: {snapshot['arduino_ms']} ms] "
                           f"Teplota: {snapshot['temp']:4.1f}°C | "
                           f"Vlhkost:{snapshot['hum']:4.1f}% | "
                           f"Tlak: {snapshot['press']:6.0f}hPa | "
