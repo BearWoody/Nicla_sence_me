@@ -11,8 +11,8 @@ UUID_DATA = "19B10001-E8F2-537E-4F6C-D104768A1214"
 ACC_DIVISOR = 4096.0
 
 # Nastavení doby měření
-MEASUREMENT_HOURS = 0
-MEASUREMENT_MINUTES = 10
+MEASUREMENT_HOURS = 1
+MEASUREMENT_MINUTES = 30
 MEASUREMENT_SECONDS = 0
 
 TOTAL_MEASUREMENT_SEC = (MEASUREMENT_HOURS * 3600) + (MEASUREMENT_MINUTES * 60) + MEASUREMENT_SECONDS
@@ -22,17 +22,18 @@ data_queue = None
 
 def callback_data(sender, data):
     try:
-        unpacked = struct.unpack('<I7f', data)
+        unpacked = struct.unpack('<2I7f', data)
 
         snapshot = {
-            "arduino_ms": unpacked[0],
-            "temp": unpacked[1],
-            "hum": unpacked[2],
-            "press": unpacked[3],
-            "gas": unpacked[4],
-            "acc_x": unpacked[5],
-            "acc_y": unpacked[6],
-            "acc_z": unpacked[7],
+            "sequence": unpacked[0],
+            "arduino_ms": unpacked[1],
+            "temp": unpacked[2],
+            "hum": unpacked[3],
+            "press": unpacked[4],
+            "gas": unpacked[5],
+            "acc_x": unpacked[6],
+            "acc_y": unpacked[7],
+            "acc_z": unpacked[8],
             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         }
 
@@ -68,7 +69,7 @@ async def main():
         with open(csv_filename, mode='w', newline='') as file:
             writer = csv.writer(file)
             header = [
-                "Timestamp_PC", "Arduino_ms", "Teplota", "Vlhkost", "Tlak", "Plyn",
+                "Timestamp_PC", "Arduino_ms", "Sequence", "Teplota", "Vlhkost", "Tlak", "Plyn",
                 "AccX_g", "AccY_g", "AccZ_g",
                 "Pitch_deg", "Roll_deg", "Total_G"
             ]
@@ -115,6 +116,7 @@ async def main():
                     writer.writerow([
                         now_full,
                         snapshot['arduino_ms'],
+                        snapshot['sequence'],
                         f"{snapshot['temp']:.2f}",
                         f"{snapshot['hum']:.2f}",
                         f"{snapshot['press']:.1f}",
